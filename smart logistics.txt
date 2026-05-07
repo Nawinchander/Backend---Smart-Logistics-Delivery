@@ -45,6 +45,242 @@ MySQL           MongoDB        Redis            Queue
 
 Why This Project is FAANG Level?
 
+This project demonstrates:ConceptUsageHybrid DatabaseMySQL + MongoDBScalabilityStateless APIsQueue SystemBullMQ + RedisReliabilityRetry + DLQPerformanceRedis CachingSecurityJWT + RBACDevOpsDocker + CI/CDClean ArchitectureLayered architectureProduction DesignLogging + ValidationDistributed SystemsWorker services3. Tech StackLayerTechnologyBackendNode.jsFrameworkExpress.jsSQL DBMySQLNoSQL DBMongoDBCacheRedisQueueBullMQAuthJWTValidationJoiTestingJest + SupertestContainerDockerCI/CDGitHub ActionsORMSequelizeODMMongooseLoggingWinston4. Folder Structuresmart-logistics-backend/|├── api-gateway/|├── services/|   ||   ├── auth-service/|   ||   ├── order-service/|   ||   ├── delivery-service/|   ||   └── notification-service/|├── shared/|   ||   ├── config/|   ├── middleware/|   ├── utils/|   ├── logger/|   └── constants/|├── workers/|   ||   ├── order-worker/|   ├── retry-worker/|   └── dlq-worker/|├── queues/|   ||   ├── orderQueue.js|   ├── retryQueue.js|   └── deadLetterQueue.js|├── docker/|5. Step-by-Step Project SetupStep 1: Initialize Projectmkdir smart-logistics-backendcd smart-logistics-backendnpm init -yStep 2: Install PackagesCore Packagesnpm install express dotenv cors helmet morganSecurity Packagesnpm install bcrypt jsonwebtoken express-rate-limitDatabase Packagesnpm install mongoose sequelize mysql2Redis & Queuenpm install ioredis bullmqValidationnpm install joiLoggingnpm install winstonDev Dependenciesnpm install --save-dev nodemon jest supertest6. Environment VariablesCreate:.envPORT=5000JWT_SECRET=mysecretMYSQL_HOST=localhostMYSQL_USER=rootMYSQL_PASSWORD=passwordMYSQL_DATABASE=logistics_dbMONGO_URI=mongodb://localhost:27017/ordersREDIS_HOST=localhostREDIS_PORT=63797. Auth ServiceFolder Structureauth-service/|├── controllers/├── routes/├── services/├── models/├── middleware/└── app.jsUser Model (MySQL - Sequelize)const { DataTypes } = require('sequelize');const sequelize = require('../config/mysql');const User = sequelize.define('User', {  name: {    type: DataTypes.STRING,    allowNull: false,  },  email: {    type: DataTypes.STRING,    unique: true,  },  password: {    type: DataTypes.STRING,  },  role: {    type: DataTypes.STRING,    defaultValue: 'customer',  },});module.exports = User;Register Controllerconst bcrypt = require('bcrypt');const jwt = require('jsonwebtoken');const User = require('../models/User');exports.register = async (req, res) => {  try {    const { name, email, password } = req.body;    const hashedPassword = await bcrypt.hash(password, 10);    const user = await User.create({      name,      email,      password: hashedPassword,    });    res.status(201).json({      success: true,      user,    });  } catch (error) {    res.status(500).json({ error: error.message });  }};Login Controllerexports.login = async (req, res) => {  try {    const { email, password } = req.body;    const user = await User.findOne({ where: { email } });    if (!user) {      return res.status(404).json({ message: 'User not found' });    }    const isMatch = await bcrypt.compare(password, user.password);    if (!isMatch) {      return res.status(400).json({ message: 'Invalid credentials' });    }    const token = jwt.sign(      {        id: user.id,        role: user.role,      },      process.env.JWT_SECRET,      {        expiresIn: '1d',      }    );    res.json({ token });  } catch (error) {    res.status(500).json({ error: error.message });  }};JWT Middlewareconst jwt = require('jsonwebtoken');module.exports = (req, res, next) => {  try {    const token = req.headers.authorization.split(' ')[1];    const decoded = jwt.verify(token, process.env.JWT_SECRET);    req.user = decoded;    next();  } catch (error) {    res.status(401).json({ message: 'Unauthorized' });  }};8. Order Service (MongoDB)Order Schemaconst mongoose = require('mongoose');const orderSchema = new mongoose.Schema({  customerId: String,  items: Array,  totalPrice: Number,  status: {    type: String,    default: 'PENDING',  },});module.exports = mongoose.model('Order', orderSchema);Create Order APIconst Order = require('../models/Order');const { orderQueue } = require('../../queues/orderQueue');exports.createOrder = async (req, res) => {  try {    const order = await Order.create(req.body);    await orderQueue.add('process-order', {      orderId: order._id,    });    res.status(201).json(order);  } catch (error) {    res.status(500).json({ error: error.message });  }};9. Queue SystemorderQueue.jsconst { Queue } = require('bullmq');const Redis = require('ioredis');const connection = new Redis({  host: process.env.REDIS_HOST,  port: process.env.REDIS_PORT,});const orderQueue = new Queue('orderQueue', {  connection,});module.exports = { orderQueue };10. Worker Serviceorder-worker/index.jsconst { Worker } = require('bullmq');const Redis = require('ioredis');const connection = new Redis({  host: process.env.REDIS_HOST,  port: process.env.REDIS_PORT,});const worker = new Worker(  'orderQueue',  async (job) => {    console.log('Processing Order:', job.data);    // simulate processing    await new Promise((resolve) => setTimeout(resolve, 2000));    console.log('Order Processed');  },  {    connection,  });worker.on('failed', async (job, err) => {  console.log('Job failed:', err.message);});11. Dead Letter Queue (DLQ)Why DLQ?If a job continuously fails:Network issueDB issueExternal API issueInstead of losing data:Send failed job to DLQRetry laterPrevent system crashdeadLetterQueue.jsconst { Queue } = require('bullmq');const Redis = require('ioredis');const connection = new Redis();const deadLetterQueue = new Queue('deadLetterQueue', {  connection,});module.exports = deadLetterQueue;Failed Job Handlerworker.on('failed', async (job, err) => {  await deadLetterQueue.add('failed-order', {    jobData: job.data,    reason: err.message,  });});12. Redis CachingWhy Redis?Used for:Fast API responseSession cachingFrequently accessed dataReducing DB loadCache Middlewareconst Redis = require('ioredis');const redis = new Redis();module.exports = async (req, res, next) => {  const key = req.originalUrl;  const cachedData = await redis.get(key);  if (cachedData) {    return res.json(JSON.parse(cachedData));  }  res.sendResponse = res.json;  res.json = (body) => {    redis.set(key, JSON.stringify(body), 'EX', 60);    res.sendResponse(body);  };  next();};13. Rate Limitingconst rateLimit = require('express-rate-limit');const limiter = rateLimit({  windowMs: 15 * 60 * 1000,  max: 100,});module.exports = limiter;14. Logging Systemlogger.jsconst winston = require('winston');const logger = winston.createLogger({  transports: [    new winston.transports.Console(),    new winston.transports.File({ filename: 'app.log' }),  ],});module.exports = logger;15. Docker SetupDockerfileFROM node:20WORKDIR /appCOPY package*.json ./RUN npm installCOPY . .EXPOSE 5000CMD ["npm", "start"]docker-compose.ymlversion: '3'services:  backend:    build: .    ports:      - "5000:5000"    depends_on:      - mysql      - mongo      - redis  mysql:    image: mysql:8    environment:      MYSQL_ROOT_PASSWORD: password      MYSQL_DATABASE: logistics_db  mongo:    image: mongo  redis:    image: redis16. CI/CD Pipeline.github/workflows/ci.ymlname: Node.js CIon:  push:    branches: [ main ]jobs:  build:    runs-on: ubuntu-latest    strategy:      matrix:        node-version: [18.x]    steps:    - uses: actions/checkout@v4    - name: Use Node.js      uses: actions/setup-node@v4      with:        node-version: ${{ matrix.node-version }}    - run: npm install    - run: npm test17. Testingauth.test.jsconst request = require('supertest');const app = require('../app');describe('Auth APIs', () => {  test('Register User', async () => {    const response = await request(app)      .post('/api/auth/register')      .send({        name: 'John',        email: 'john@test.com',        password: '123456',      });    expect(response.statusCode).toBe(201);  });});18. API FlowClient Request   |API Gateway   |Auth Middleware   |Controller   |Service Layer   |Database Layer   |Queue   |Worker   |Notification19. System Design Concepts UsedConceptExplanationAPI GatewaySingle entry pointQueueAsync processingWorkerBackground jobsDLQFailed job handlingRedis CacheFaster responseStateless APIsHorizontal scalingHybrid DBStructured + unstructured dataRetry LogicFault toleranceRate LimitingPrevent abuseJWTSecure authentication20. Interview Questions & AnswersQ1. Why use MySQL + MongoDB together?Answer:MySQL handles relational structured data.MongoDB handles flexible schema data.Hybrid DB improves scalability and flexibility.Q2. Why use Redis?Answer:In-memory cache.Reduces DB calls.Improves API speed.Used for session management and queues.Q3. What is BullMQ?Answer:Queue library using Redis.Used for background processing.Supports retries, concurrency, scheduling.Q4. What is a Dead Letter Queue?Answer:Stores failed jobs.Prevents data loss.Helps debugging and retrying.Q5. Why use Worker Services?Answer:Moves heavy tasks away from APIs.Prevents API blocking.Improves scalability.Q6. What is Horizontal Scaling?Answer:Increasing number of servers.Stateless APIs enable horizontal scaling.Q7. Why JWT?Answer:Stateless authentication.Scalable.Easy microservice integration.Q8. Why Rate Limiting?Answer:Prevent brute force attacks.Protects APIs from abuse.Improves reliability.21. Advanced ImprovementsYou can further improve this project using:KubernetesKafkaGraphQLAPI Gateway with NginxELK StackPrometheus + GrafanaWebSocketsgRPCSaga PatternCircuit BreakerCQRS22. Resume PointsYou can add these resume points:Built scalable logistics backend using Node.js microservices architecture.Implemented Redis caching and BullMQ queues for asynchronous job processing.Integrated MySQL and MongoDB hybrid databases for optimized data handling.Designed retry mechanisms and dead-letter queues for fault tolerance.Containerized services using Docker and automated CI/CD using GitHub Actions.23. Important FAANG Interview InsightsFocus AreasTopicImportanceScalabilityVery HighDB DesignVery HighAsync ProcessingHighFault ToleranceHighSecurityHighAPI OptimizationHighSystem DesignVery HighCommon MistakesAvoid:Blocking APIsStoring everything in one DBNo retry logicNo cachingTight couplingNo loggingNo validation24. Final Learning OutcomeAfter building this project you will understand:Production backend architectureQueue systemsDistributed systems basicsFault toleranceScalable API designDocker & CI/CDRedis internalsWorker systemsAuthentication systemsMicroservice concepts25. Suggested Next StepUpgrade this project into:Uber clone backendAmazon logistics backendReal-time tracking systemEvent-driven architectureKubernetes deploymentKafka streaming systemI created a complete FAANG-level backend project blueprint with:
+
+
+Proper scalable folder structure
+
+
+Step-by-step setup
+
+
+Node.js + Express architecture
+
+
+MySQL + MongoDB hybrid design
+
+
+Redis caching
+
+
+BullMQ queues
+
+
+Worker services
+
+
+Dead Letter Queue
+
+
+JWT authentication
+
+
+Docker
+
+
+CI/CD
+
+
+Testing
+
+
+System design concepts
+
+
+Interview questions & answers
+
+
+Resume-ready points
+
+
+Production-level backend concepts
+
+
+It’s structured like a real-world scalable backend system used in large tech companies.
+
+
+Tech Stack
+Layer	Technology
+Backend	Node.js
+Framework	Express.js
+SQL DB	MySQL
+NoSQL DB	MongoDB
+Cache	Redis
+Queue	BullMQ
+Auth	JWT
+Validation	Joi
+Testing	Jest + Supertest
+Container	Docker
+CI/CD	GitHub Actions
+ORM	Sequelize
+ODM	Mongoose
+Logging	Winston
+
+
+Folder Structure
+
+smart-logistics-backend/
+|
+├── api-gateway/
+|
+├── services/
+|   |
+|   ├── auth-service/
+|   |
+|   ├── order-service/
+|   |
+|   ├── delivery-service/
+|   |
+|   └── notification-service/
+|
+├── shared/
+|   |
+|   ├── config/
+|   ├── middleware/
+|   ├── utils/
+|   ├── logger/
+|   └── constants/
+|
+├── workers/
+|   |
+|   ├── order-worker/
+|   ├── retry-worker/
+|   └── dlq-worker/
+|
+├── queues/
+|   |
+|   ├── orderQueue.js
+|   ├── retryQueue.js
+|   └── deadLetterQueue.js
+|
+├── docker/
+|
+├── tests/
+|
+├── .github/
+|   |
+|   └── workflows/
+|       └── ci.yml
+|
+├── docker-compose.yml
+|
+└── README.md
 
 
 
+Step-by-Step Project Setup
+Step 1: Initialize Project
+
+
+
+smart-logistics-backend/
+|
+├── services/
+|   |
+|   ├── auth-service/
+|   |   |
+|   |   ├── models/
+|   |   |   |
+|   |   |   └── User.js   <-- MYSQL USER MODEL COMES HERE
+|   |   |
+|   |   ├── controllers/
+|   |   |   └── authController.js
+|   |   |
+|   |   ├── routes/
+|   |   |   └── authRoutes.js
+|   |   |
+|   |   └── middleware/
+|   |       └── authMiddleware.js
+
+
+smart-logistics-backend/
+|
+├── package.json
+├── .env
+├── docker-compose.yml
+├── Dockerfile
+|
+├── api-gateway/
+|   ├── app.js
+|   ├── routes/
+|   |   └── gatewayRoutes.js
+|   └── middleware/
+|       └── authMiddleware.js
+|
+├── shared/
+|   ├── config/
+|   |   ├── mysql.js
+|   |   ├── mongo.js
+|   |   └── redis.js
+|   |
+|   ├── middleware/
+|   |   ├── rateLimiter.js
+|   |   ├── cacheMiddleware.js
+|   |   └── errorMiddleware.js
+|   |
+|   ├── logger/
+|   |   └── logger.js
+|   |
+|   └── utils/
+|       └── generateToken.js
+|
+├── queues/
+|   ├── orderQueue.js
+|   ├── retryQueue.js
+|   └── deadLetterQueue.js
+|
+├── workers/
+|   ├── order-worker/
+|   |   └── index.js
+|   |
+|   ├── retry-worker/
+|   |   └── index.js
+|   |
+|   └── dlq-worker/
+|       └── index.js
+|
+├── services/
+|   |
+|   ├── auth-service/
+|   |   ├── app.js
+|   |   ├── controllers/
+|   |   |   └── authController.js
+|   |   |
+|   |   ├── routes/
+|   |   |   └── authRoutes.js
+|   |   |
+|   |   ├── models/
+|   |   |   └── User.js
+|   |   ||   |   └── middleware/
+|   |       └── authMiddleware.js
+|   |
+|   ├── order-service/
+|   |   ├── app.js
+|   |   ├── controllers/
+|   |   |   └── orderController.js
+|   |   |
+|   |   ├── routes/
+|   |   |   └── orderRoutes.js
+|   |   |
+|   |   └── models/
+|   |       └── Order.js
+|   |
+|   ├── delivery-service/
+|   |   ├── app.js
+|   |   ├── controllers/
+|   |   |   └── deliveryController.js
+|   |   |
+|   |   └── routes/
+|   |       └── deliveryRoutes.js
+|   |
+|   └── notification-service/
+|       ├── app.js
+|       ├── controllers/
+|       |   └── notificationController.js
+|       |
+|       └── routes/
+|           └── notificationRoutes.js
+|
+└── tests/
+    ├── auth.test.js
+    └── order.test.js
