@@ -1,0 +1,104 @@
+smart-logistics-backend/
+│
+├── services/
+│   │
+│   ├── auth-service/
+│   │   │
+│   │   ├── controllers/
+│   │   │   └── authController.js   <-- REGISTER/LOGIN LOGIC CONTROLLER
+│   │   │
+│   │   ├── models/
+│   │   │   └── User.js             <-- MYSQL USER MODEL
+│   │   │
+│   │   ├── routes/
+│   │   │   └── authRoutes.js       <-- API ROUTES
+│   │   │
+│   │   ├── middleware/
+│   │   │   └── authMiddleware.js   <-- JWT CHECK
+│   │   │
+│   │   └── services/
+│   │       └── authService.js      <-- OPTIONAL BUSINESS LOGIC
+│   │
+│   ├── order-service/
+│   │   │
+│   │   ├── controllers/
+│   │   │   └── orderController.js  <-- ORDER LOGIC
+│   │   │
+│   │   ├── models/
+│   │   │   └── Order.js            <-- MONGODB MODEL
+│   │   │
+│   │   ├── routes/
+│   │   │   └── orderRoutes.js
+│   │   │
+│   │   └── services/
+│   │       └── orderService.js
+│   │
+│   ├── notification-service/
+│   │   │
+│   │   ├── controllers/
+│   │   │   └── notificationController.js
+│   │   │
+│   │   ├── routes/
+│   │   │   └── notificationRoutes.js
+│   │   │
+│   │   └── services/
+│   │       └── notificationService.js
+│   │
+│   └── delivery-service/
+│       │
+│       ├── controllers/
+│       │   └── deliveryController.js
+│       │
+│       ├── routes/
+│       │   └── deliveryRoutes.js
+│       │
+│       └── services/
+│           └── deliveryService.js
+│
+├── workers/
+│   │
+│   ├── order-worker/
+│   │   └── index.js                <-- BACKGROUND JOB LOGIC
+│   │
+│   ├── retry-worker/
+│   │   └── index.js
+│   │
+│   └── dlq-worker/
+│       └── index.js
+│
+├── queues/
+│   │
+│   ├── orderQueue.js
+│   ├── retryQueue.js
+│   └── deadLetterQueue.js
+│
+├── shared/
+│   │
+│   ├── config/
+│   │   ├── mysql.js
+│   │   ├── mongo.js
+│   │   └── redis.js
+│   │
+│   ├── middleware/
+│   │   ├── rateLimiter.js
+│   │   ├── cacheMiddleware.js
+│   │   └── errorMiddleware.js
+│   │
+│   ├── logger/
+│   │   └── logger.js
+│   │
+│   └── utils/
+│       └── generateToken.js
+│
+├── api-gateway/
+│   └── app.js                      <-- MAIN SERVER ENTRY
+│
+├── tests/
+│   ├── auth.test.js
+│   └── order.test.js
+│
+├── Dockerfile
+├── docker-compose.yml
+├── .env
+└── package.json
+
