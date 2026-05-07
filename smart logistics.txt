@@ -1,0 +1,50 @@
+A real-world scalable backend system similar to systems used by:
+
+Uber Eats
+Swiggy
+Amazon Logistics
+Dunzo
+Blinkit
+
+This project demonstrates:
+
+System Design
+Microservices Concepts
+REST APIs
+Authentication & Authorization
+SQL + NoSQL Hybrid DB
+Redis Caching
+Message Queue
+Worker Services
+Rate Limiting
+Docker
+CI/CD
+Testing
+Retry Mechanism
+Dead Letter Queue
+Logging & Monitoring
+
+
+High Level Architecture
+
+Client Apps
+   |
+API Gateway
+   |
+-------------------------------------------------
+|               |              |                |
+Auth Service    Order Service  Delivery Service Notification Service
+|               |              |                |
+MySQL           MongoDB        Redis            Queue
+                |
+             Worker Service
+                |
+          Dead Letter Queue
+
+
+
+Why This Project is FAANG Level?
+
+
+
+
