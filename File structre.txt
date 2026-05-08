@@ -1,76 +1,83 @@
+
+| Layer      | Technology       |
+| ---------- | ---------------- |
+| Backend    | Node.js          |
+| Framework  | Express.js       |
+| SQL DB     | MySQL            |
+| NoSQL DB   | MongoDB          |
+| Cache      | Redis            |
+| Queue      | BullMQ           |
+| ORM        | Sequelize        |
+| ODM        | Mongoose         |
+| Auth       | JWT              |
+| Validation | Joi              |
+| Logging    | Winston          |
+| Testing    | Jest + Supertest |
+| Container  | Docker           |
+| CI/CD      | GitHub Actions   |
+
+
+Client
+   |
+API Gateway
+   |
+------------------------------------------------
+|               |              |               |
+Auth Service    Order Service  Delivery Service
+|               |              |
+MySQL           MongoDB        Redis
+                    |
+                 BullMQ
+                    |
+                 Workers
+                    |
+            Dead Letter Queue
+
+
+
 smart-logistics-backend/
+│
+├── api-gateway/
+│   └── app.js
 │
 ├── services/
 │   │
 │   ├── auth-service/
-│   │   │
 │   │   ├── controllers/
-│   │   │   └── authController.js   <-- REGISTER/LOGIN LOGIC CONTROLLER
+│   │   │   └── authController.js
 │   │   │
 │   │   ├── models/
-│   │   │   └── User.js             <-- MYSQL USER MODEL
+│   │   │   └── User.js
 │   │   │
 │   │   ├── routes/
-│   │   │   └── authRoutes.js       <-- API ROUTES
+│   │   │   └── authRoutes.js
 │   │   │
-│   │   ├── middleware/
-│   │   │   └── authMiddleware.js   <-- JWT CHECK
-│   │   │
-│   │   └── services/
-│   │       └── authService.js      <-- OPTIONAL BUSINESS LOGIC
+│   │   └── middleware/
+│   │       └── authMiddleware.js
 │   │
 │   ├── order-service/
-│   │   │
 │   │   ├── controllers/
-│   │   │   └── orderController.js  <-- ORDER LOGIC
+│   │   │   └── orderController.js
 │   │   │
 │   │   ├── models/
-│   │   │   └── Order.js            <-- MONGODB MODEL
+│   │   │   └── Order.js
 │   │   │
-│   │   ├── routes/
-│   │   │   └── orderRoutes.js
-│   │   │
-│   │   └── services/
-│   │       └── orderService.js
-│   │
-│   ├── notification-service/
-│   │   │
-│   │   ├── controllers/
-│   │   │   └── notificationController.js
-│   │   │
-│   │   ├── routes/
-│   │   │   └── notificationRoutes.js
-│   │   │
-│   │   └── services/
-│   │       └── notificationService.js
+│   │   └── routes/
+│   │       └── orderRoutes.js
 │   │
 │   └── delivery-service/
-│       │
 │       ├── controllers/
 │       │   └── deliveryController.js
 │       │
-│       ├── routes/
-│       │   └── deliveryRoutes.js
-│       │
-│       └── services/
-│           └── deliveryService.js
-│
-├── workers/
-│   │
-│   ├── order-worker/
-│   │   └── index.js                <-- BACKGROUND JOB LOGIC
-│   │
-│   ├── retry-worker/
-│   │   └── index.js
-│   │
-│   └── dlq-worker/
-│       └── index.js
+│       └── routes/
+│           └── deliveryRoutes.js
 │
 ├── queues/
-│   │
-│   ├── orderQueue.js
-│   ├── retryQueue.js
-│   └── deadLetterQueue.js
+│   └── orderQueue.js
+│
+├── workers/
+│   └── order-worker/
+│       └── index.js
 │
 ├── shared/
 │   │
@@ -81,24 +88,18 @@ smart-logistics-backend/
 │   │
 │   ├── middleware/
 │   │   ├── rateLimiter.js
-│   │   ├── cacheMiddleware.js
-│   │   └── errorMiddleware.js
+│   │   └── cacheMiddleware.js
 │   │
-│   ├── logger/
-│   │   └── logger.js
-│   │
-│   └── utils/
-│       └── generateToken.js
-│
-├── api-gateway/
-│   └── app.js                      <-- MAIN SERVER ENTRY
+│   └── logger/
+│       └── logger.js
 │
 ├── tests/
-│   ├── auth.test.js
-│   └── order.test.js
+│   └── auth.test.js
 │
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .env
 └── package.json
+
+
 
