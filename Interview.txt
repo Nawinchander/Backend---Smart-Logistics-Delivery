@@ -9,3 +9,26 @@ MongoDB handles flexible schema data.
 
 Using both improves scalability and performance.
 
+
+Q2. Why Redis?
+Answer
+Redis is an in-memory database.
+
+Used for:
+- caching
+- queues
+- sessions
+- faster response times
+
+
+Q3. Why Worker Services?
+Answer
+Workers process heavy tasks in background.
+
+Prevents API blocking.
+
+Improves scalability.
+
+
+
+
