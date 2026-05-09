@@ -30,5 +30,32 @@ Prevents API blocking.
 Improves scalability.
 
 
+Q4. What is BullMQ?
+Answer
+BullMQ is a Redis-based queue library.
+
+Used for:
+- background jobs
+- retries
+- delayed jobs
+- async processing
+
+
+Q5. What is a Dead Letter Queue?
+Answer
+Failed jobs are moved into DLQ.
+
+Prevents data loss.
+
+Helps retry failed operations.
+
+
+Q6. Why use JWT?
+Answer
+JWT provides stateless authentication.
+
+Scalable for distributed systems.
+
+
 
 
