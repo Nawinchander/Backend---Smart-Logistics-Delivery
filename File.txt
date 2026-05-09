@@ -1,0 +1,22 @@
+//start docker
+docker-compose up
+
+start backend - npm run dev
+
+
+start worker
+
+
+Client
+   ↓
+Routes
+   ↓
+Controllers
+   ↓
+Models
+   ↓
+Database
+   ↓
+Queue
+   ↓
+Worker
