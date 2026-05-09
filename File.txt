@@ -4,7 +4,7 @@ docker-compose up
 start backend - npm run dev
 
 
-start worker
+start worker - node workers/order-worker/index.js
 
 
 Client

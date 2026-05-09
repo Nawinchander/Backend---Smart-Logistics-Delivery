@@ -1,0 +1,11 @@
+Interview Questions & Answers
+
+
+Q1. Why use MySQL + MongoDB together?
+Answer
+MySQL handles relational structured data.
+
+MongoDB handles flexible schema data.
+
+Using both improves scalability and performance.
+
