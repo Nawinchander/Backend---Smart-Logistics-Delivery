@@ -56,6 +56,15 @@ JWT provides stateless authentication.
 
 Scalable for distributed systems.
 
+Resume Points
+Built scalable logistics backend using Node.js microservices architecture.
 
+Implemented Redis caching and BullMQ queue processing.
+
+Integrated MySQL and MongoDB hybrid databases.
+
+Built worker services and retry mechanisms.
+
+Containerized services using Docker and CI/CD pipelines.
 
 
